@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fed Cat Button</title>
+  <title>Fed Lola</title>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -13,49 +15,108 @@
       justify-content: center;
       min-height: 100vh;
       margin: 0;
-      background-color: #f8f9fa;
+      background-color: #faf5ef;
     }
+
+    .container {
+      text-align: center;
+      padding: 20px;
+    }
+
+    /* Style for the cat photo */
+    .cat-photo {
+      width: 180px;
+      height: 180px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 4px solid #ffffff;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      color: #333;
+      margin-top: 0;
+      margin-bottom: 25px;
+    }
+
     .feed-btn {
-      background-color: #ff5722;
+      background-color: #ff6b6b;
       color: white;
       border: none;
-      border-radius: 50%;
-      width: 220px;
-      height: 220px;
-      font-size: 26px;
+      border-radius: 50px;
+      padding: 18px 45px;
+      font-size: 22px;
       font-weight: bold;
       cursor: pointer;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-      transition: transform 0.1s, background-color 0.2s;
+      box-shadow: 0 8px 20px rgba(255, 107, 107, 0.4);
+      transition: transform 0.15s ease, background-color 0.2s ease;
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
     }
+
     .feed-btn:active {
       transform: scale(0.95);
-      background-color: #e64a19;
+      background-color: #ee5253;
     }
+
+    .feed-btn:disabled {
+      background-color: #cccccc;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
     #status {
       margin-top: 25px;
       font-size: 18px;
-      font-weight: 500;
-      color: #333;
+      font-weight: 600;
+      color: #444;
+      min-height: 24px;
     }
   </style>
 </head>
 <body>
 
-  <button class="feed-btn" onclick="feedCat()">🐾 FED CAT</button>
-  <div id="status"></div>
+  <div class="container">
+    <!-- Make sure the src matches your image filename in the repository -->
+    <img src="lola.jpg" alt="Lola" class="cat-photo">
+    
+    <h1>Fed Lola Today? 🐾</h1>
+    <button id="feedButton" class="feed-btn" onclick="feedLola()">FED LOLA</button>
+    <div id="status"></div>
+  </div>
 
   <script>
-    function feedCat() {
+    (function() {
+      emailjs.init("YOUR_PUBLIC_KEY"); 
+    })();
+
+    async function feedLola() {
+      const btn = document.getElementById('feedButton');
       const statusDiv = document.getElementById('status');
-      statusDiv.innerText = "Processing...";
 
-      // We will put our notification/email-to-SMS logic here next
-      console.log("Fed Cat button clicked!");
+      btn.disabled = true;
+      statusDiv.innerText = "Sending text to roommates...";
 
-      setTimeout(() => {
-        statusDiv.innerText = "✅ Action triggered!";
-      }, 500);
+      const serviceID = "YOUR_SERVICE_ID";
+      const templateID = "YOUR_TEMPLATE_ID";
+
+      try {
+        const response = await emailjs.send(serviceID, templateID);
+        
+        if (response.status === 200) {
+          statusDiv.innerText = "✅ SMS sent! Lola thanks you 🐱";
+        } else {
+          statusDiv.innerText = "⚠️ Message queued, check logs.";
+        }
+      } catch (error) {
+        console.error("EmailJS Error:", error);
+        statusDiv.innerText = "❌ Failed to send text.";
+      } finally {
+        setTimeout(() => {
+          btn.disabled = false;
+        }, 3000);
+      }
     }
   </script>
 </body>
