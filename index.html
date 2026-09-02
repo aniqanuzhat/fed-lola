@@ -1,10 +1,114 @@
-<!-- Firebase App & Realtime Database SDKs (Compat Version for plain HTML/JS) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fed Lola</title>
+
+  <!-- External Libraries -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background-color: #faf5ef;
+    }
+
+    .container {
+      text-align: center;
+      padding: 20px;
+    }
+
+    .cat-photo {
+      width: 180px;
+      height: 180px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 4px solid #ffffff;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      color: #333;
+      margin-top: 0;
+      margin-bottom: 10px;
+    }
+
+    .timestamp-box {
+      background: #ffffff;
+      padding: 12px 20px;
+      border-radius: 12px;
+      margin-bottom: 25px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      font-size: 16px;
+      color: #555;
+    }
+
+    .timestamp-box strong {
+      color: #222;
+    }
+
+    .feed-btn {
+      background-color: #ff6b6b;
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 18px 45px;
+      font-size: 22px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(255, 107, 107, 0.4);
+      transition: transform 0.15s ease, background-color 0.2s ease;
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .feed-btn:active {
+      transform: scale(0.95);
+      background-color: #ee5253;
+    }
+
+    .feed-btn:disabled {
+      background-color: #cccccc;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
+    #status {
+      margin-top: 20px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #666;
+      min-height: 24px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <img src="lola.jpg" alt="Lola" class="cat-photo" onerror="this.style.display='none'">
+    
+    <h1>Fed Lola Today? 🐾</h1>
+    
+    <div class="timestamp-box">
+      Last Fed: <strong id="lastFedTime">Loading...</strong>
+    </div>
+
+    <button id="feedButton" class="feed-btn" onclick="feedLola()">FED LOLA</button>
+    <div id="status"></div>
+  </div>
+
   <script>
-    // Firebase Config using your keys
+    // 1. Firebase Credentials
     const firebaseConfig = {
       apiKey: "AIzaSyAf4T7QPuiae3qBQePxH7K-Xz6nG7JUsh4",
       authDomain: "fed-lola.firebaseapp.com",
@@ -15,48 +119,59 @@
       appId: "1:1024504801806:web:053d531697417928366a5f"
     };
 
-    // Initialize Firebase
+    // 2. EmailJS Keys (Replace with your keys from the EmailJS dashboard)
+    const EMAILJS_PUBLIC_KEY = "YOUR_EMAILJS_PUBLIC_KEY";
+    const EMAILJS_SERVICE_ID = "YOUR_SERVICE_ID";
+    const EMAILJS_TEMPLATE_ID = "YOUR_TEMPLATE_ID";
+
+    // Initialize Services
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Initialize EmailJS
-    (function() {
-      emailjs.init("YOUR_EMAILJS_PUBLIC_KEY");
-    })();
+    if (EMAILJS_PUBLIC_KEY !== "YOUR_EMAILJS_PUBLIC_KEY") {
+      emailjs.init(EMAILJS_PUBLIC_KEY);
+    }
 
-    // Listen for live database updates
+    // Realtime Listener
     db.ref('lastFed').on('value', (snapshot) => {
       const val = snapshot.val();
-      document.getElementById('lastFedTime').innerText = val ? val : "Not yet fed";
+      const target = document.getElementById('lastFedTime');
+      if (target) {
+        target.innerText = val ? val : "Not yet fed";
+      }
     });
 
-    // Handle button tap
+    // Action Handler
     async function feedLola() {
       const btn = document.getElementById('feedButton');
       const statusDiv = document.getElementById('status');
 
       btn.disabled = true;
-      statusDiv.innerText = "Updating & sending text...";
+      statusDiv.innerText = "Updating...";
 
       const now = new Date();
       const formattedTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + 
                             " on " + now.toLocaleDateString([], { month: 'short', day: 'numeric' });
 
       try {
-        // 1. Write timestamp to Firebase
+        // Write to Firebase
         await db.ref('lastFed').set(formattedTime);
 
-        // 2. Trigger EmailJS SMS to roommates
-        const serviceID = "YOUR_SERVICE_ID";
-        const templateID = "YOUR_TEMPLATE_ID";
-        await emailjs.send(serviceID, templateID);
-
-        statusDiv.innerText = "✅ Saved & SMS sent!";
+        // Send EmailJS SMS if keys are provided
+        if (EMAILJS_PUBLIC_KEY !== "YOUR_EMAILJS_PUBLIC_KEY") {
+          statusDiv.innerText = "Sending text to roommates...";
+          await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID);
+          statusDiv.innerText = "✅ Saved & SMS sent!";
+        } else {
+          statusDiv.innerText = "✅ Saved to database!";
+        }
       } catch (error) {
         console.error("Error:", error);
-        statusDiv.innerText = "⚠️ Updated page, but SMS failed.";
+        statusDiv.innerText = "⚠️ Timestamp saved, but SMS failed.";
       } finally {
         setTimeout(() => { btn.disabled = false; }, 3000);
       }
     }
   </script>
+</body>
+</html>
