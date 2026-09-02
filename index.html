@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fed Cat Button</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background-color: #f8f9fa;
+    }
+    .feed-btn {
+      background-color: #ff5722;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 220px;
+      height: 220px;
+      font-size: 26px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      transition: transform 0.1s, background-color 0.2s;
+    }
+    .feed-btn:active {
+      transform: scale(0.95);
+      background-color: #e64a19;
+    }
+    #status {
+      margin-top: 25px;
+      font-size: 18px;
+      font-weight: 500;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+
+  <button class="feed-btn" onclick="feedCat()">🐾 FED CAT</button>
+  <div id="status"></div>
+
+  <script>
+    function feedCat() {
+      const statusDiv = document.getElementById('status');
+      statusDiv.innerText = "Processing...";
+
+      // We will put our notification/email-to-SMS logic here next
+      console.log("Fed Cat button clicked!");
+
+      setTimeout(() => {
+        statusDiv.innerText = "✅ Action triggered!";
+      }, 500);
+    }
+  </script>
+</body>
+</html>
