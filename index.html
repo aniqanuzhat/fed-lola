@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fed Lola</title>
 
-  <!-- External Libraries -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <!-- EmailJS SDK -->
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
   <style>
@@ -25,6 +26,8 @@
     .container {
       text-align: center;
       padding: 20px;
+      max-width: 400px;
+      width: 100%;
     }
 
     .cat-photo {
@@ -47,7 +50,7 @@
       background: #ffffff;
       padding: 12px 20px;
       border-radius: 12px;
-      margin-bottom: 25px;
+      margin-bottom: 20px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.05);
       font-size: 16px;
       color: #555;
@@ -70,6 +73,7 @@
       transition: transform 0.15s ease, background-color 0.2s ease;
       outline: none;
       -webkit-tap-highlight-color: transparent;
+      width: 100%;
     }
 
     .feed-btn:active {
@@ -84,11 +88,45 @@
     }
 
     #status {
-      margin-top: 20px;
-      font-size: 16px;
+      margin-top: 15px;
+      font-size: 15px;
       font-weight: 600;
       color: #666;
       min-height: 24px;
+    }
+
+    .history-card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 15px 20px;
+      margin-top: 25px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      text-align: left;
+    }
+
+    .history-card h3 {
+      margin: 0 0 10px 0;
+      font-size: 16px;
+      color: #444;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 8px;
+    }
+
+    .history-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .history-list li {
+      padding: 6px 0;
+      font-size: 14px;
+      color: #666;
+      border-bottom: 1px solid #fafafa;
+    }
+
+    .history-list li:last-child {
+      border-bottom: none;
     }
   </style>
 </head>
@@ -105,10 +143,17 @@
 
     <button id="feedButton" class="feed-btn" onclick="feedLola()">FED LOLA</button>
     <div id="status"></div>
+
+    <div class="history-card">
+      <h3>Recent Feeding History</h3>
+      <ul id="historyList" class="history-list">
+        <li>Loading history...</li>
+      </ul>
+    </div>
   </div>
 
   <script>
-    // 1. Firebase Credentials
+    // Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyAf4T7QPuiae3qBQePxH7K-Xz6nG7JUsh4",
       authDomain: "fed-lola.firebaseapp.com",
@@ -119,20 +164,17 @@
       appId: "1:1024504801806:web:053d531697417928366a5f"
     };
 
-    // 2. EmailJS Keys (Replace with your keys from the EmailJS dashboard)
-    const EMAILJS_PUBLIC_KEY = "YOUR_EMAILJS_PUBLIC_KEY";
-    const EMAILJS_SERVICE_ID = "YOUR_SERVICE_ID";
-    const EMAILJS_TEMPLATE_ID = "YOUR_TEMPLATE_ID";
+    // EmailJS Config
+    const EMAILJS_PUBLIC_KEY = "dEdp_FsFVP6CqWvui"; 
+    const EMAILJS_SERVICE_ID = "service_mbl99xl";
+    const EMAILJS_TEMPLATE_ID = "template_3iksf9m";
 
-    // Initialize Services
+    // Initialize Firebase & EmailJS
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    emailjs.init(EMAILJS_PUBLIC_KEY);
 
-    if (EMAILJS_PUBLIC_KEY !== "YOUR_EMAILJS_PUBLIC_KEY") {
-      emailjs.init(EMAILJS_PUBLIC_KEY);
-    }
-
-    // Realtime Listener
+    // Listen for most recent feeding time
     db.ref('lastFed').on('value', (snapshot) => {
       const val = snapshot.val();
       const target = document.getElementById('lastFedTime');
@@ -141,7 +183,29 @@
       }
     });
 
-    // Action Handler
+    // Listen for history log updates (shows last 5)
+    db.ref('history').limitToLast(5).on('value', (snapshot) => {
+      const historyList = document.getElementById('historyList');
+      historyList.innerHTML = '';
+
+      if (!snapshot.exists()) {
+        historyList.innerHTML = '<li>No history recorded yet.</li>';
+        return;
+      }
+
+      const items = [];
+      snapshot.forEach((child) => {
+        items.push(child.val());
+      });
+
+      items.reverse().forEach((timeStr) => {
+        const li = document.createElement('li');
+        li.innerText = `🐾 ${timeStr}`;
+        historyList.appendChild(li);
+      });
+    });
+
+    // Record feeding & send alert
     async function feedLola() {
       const btn = document.getElementById('feedButton');
       const statusDiv = document.getElementById('status');
@@ -155,21 +219,22 @@
 
       try {
         // Write to Firebase
-        await db.ref('lastFed').set(formattedTime);
+        await Promise.all([
+          db.ref('lastFed').set(formattedTime),
+          db.ref('history').push(formattedTime)
+        ]);
 
-        // Send EmailJS SMS if keys are provided
-        if (EMAILJS_PUBLIC_KEY !== "YOUR_EMAILJS_PUBLIC_KEY") {
-          statusDiv.innerText = "Sending text to roommates...";
-          await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID);
-          statusDiv.innerText = "✅ Saved & SMS sent!";
-        } else {
-          statusDiv.innerText = "✅ Saved to database!";
-        }
+        // Send EmailJS SMS
+        statusDiv.innerText = "Sending SMS...";
+        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID);
+        statusDiv.innerText = "✅ Saved & SMS sent!";
       } catch (error) {
         console.error("Error:", error);
-        statusDiv.innerText = "⚠️ Timestamp saved, but SMS failed.";
+        statusDiv.innerText = "⚠️ Saved time, but SMS failed.";
       } finally {
-        setTimeout(() => { btn.disabled = false; }, 3000);
+        setTimeout(() => { 
+          btn.disabled = false; 
+        }, 3000);
       }
     }
   </script>
