@@ -131,10 +131,42 @@
       font-size: 14px;
       color: #3d312a;
       border-bottom: 1px solid #f7f3ee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
     .history-list li:last-child {
       border-bottom: none;
+    }
+
+    .history-text {
+      flex: 1;
+      padding-right: 8px;
+      word-break: break-word;
+    }
+
+    .action-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+      padding: 4px 6px;
+      border-radius: 6px;
+      transition: background-color 0.2s ease;
+      margin-left: 4px;
+    }
+
+    .action-btn:hover {
+      background-color: #f0e8dc;
+    }
+
+    .edit-btn {
+      color: #8c6239;
+    }
+
+    .delete-btn {
+      color: #c0392b;
     }
   </style>
 </head>
@@ -176,6 +208,19 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    // Sync "Last Fed" display with latest entry
+    function updateLastFedFromHistory() {
+      db.ref('history').limitToLast(1).get().then((snapshot) => {
+        if (snapshot.exists()) {
+          snapshot.forEach((child) => {
+            db.ref('lastFed').set(child.val());
+          });
+        } else {
+          db.ref('lastFed').set("Not yet fed");
+        }
+      });
+    }
+
     // Listen for most recent feeding time
     db.ref('lastFed').on('value', (snapshot) => {
       const val = snapshot.val();
@@ -185,7 +230,7 @@
       }
     });
 
-    // Fetch and display strictly the last 5 feedings
+    // Fetch and display strictly the last 5 feedings with Edit/Delete actions
     db.ref('history').limitToLast(5).on('value', (snapshot) => {
       const historyList = document.getElementById('historyList');
       historyList.innerHTML = '';
@@ -197,16 +242,58 @@
 
       const items = [];
       snapshot.forEach((child) => {
-        items.push(child.val());
+        items.push({ key: child.key, val: child.val() });
       });
 
       // Show newest first
-      items.reverse().forEach((timeStr) => {
+      items.reverse().forEach((item) => {
         const li = document.createElement('li');
-        li.innerText = `🐾 ${timeStr}`;
+
+        const textSpan = document.createElement('span');
+        textSpan.className = 'history-text';
+        textSpan.innerText = `🐾 ${item.val}`;
+
+        const actionsDiv = document.createElement('div');
+
+        // Edit Button
+        const editBtn = document.createElement('button');
+        editBtn.className = 'action-btn edit-btn';
+        editBtn.innerHTML = '✏️';
+        editBtn.title = 'Edit Entry';
+        editBtn.onclick = () => editEntry(item.key, item.val);
+
+        // Delete Button
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'action-btn delete-btn';
+        deleteBtn.innerHTML = '🗑️';
+        deleteBtn.title = 'Delete Entry';
+        deleteBtn.onclick = () => deleteEntry(item.key);
+
+        actionsDiv.appendChild(editBtn);
+        actionsDiv.appendChild(deleteBtn);
+
+        li.appendChild(textSpan);
+        li.appendChild(actionsDiv);
         historyList.appendChild(li);
       });
     });
+
+    // Edit entry in Firebase
+    async function editEntry(key, currentVal) {
+      const updatedVal = prompt("Modify feeding timestamp:", currentVal);
+      if (updatedVal !== null && updatedVal.trim() !== "") {
+        await db.ref(`history/${key}`).set(updatedVal.trim());
+        updateLastFedFromHistory();
+      }
+    }
+
+    // Delete entry from Firebase
+    async function deleteEntry(key) {
+      if (confirm("Delete this feeding record?")) {
+        await db.ref(`history/${key}`).remove();
+        updateLastFedFromHistory();
+      }
+    }
 
     // Record feeding timestamp
     async function feedLola() {
