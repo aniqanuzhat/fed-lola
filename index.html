@@ -214,8 +214,10 @@
       statusDiv.innerText = "Updating...";
 
       const now = new Date();
-      const formattedTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + 
-                            " on " + now.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      // Formats timestamp strictly to time and weekday (e.g. "8:46 PM on Wednesday")
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const dayStr = now.toLocaleDateString([], { weekday: 'long' });
+      const formattedTime = `${timeStr} on ${dayStr}`;
 
       try {
         // Write to Firebase
