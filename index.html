@@ -8,8 +8,6 @@
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <!-- EmailJS SDK -->
-  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
   <style>
     body {
@@ -20,56 +18,63 @@
       justify-content: center;
       min-height: 100vh;
       margin: 0;
-      background-color: #faf5ef;
+      background-color: #f7f3ee;
+      color: #3d312a;
     }
 
     .container {
       text-align: center;
-      padding: 20px;
-      max-width: 400px;
+      padding: 24px;
+      max-width: 380px;
       width: 100%;
+      box-sizing: border-box;
     }
 
     .cat-photo {
-      width: 180px;
-      height: 180px;
+      width: 170px;
+      height: 170px;
       object-fit: cover;
       border-radius: 50%;
       border: 4px solid #ffffff;
-      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+      box-shadow: 0 8px 20px rgba(61, 49, 42, 0.12);
       margin-bottom: 20px;
     }
 
     h1 {
-      color: #333;
+      color: #3d312a;
       margin-top: 0;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
+      font-size: 26px;
     }
 
     .timestamp-box {
       background: #ffffff;
-      padding: 12px 20px;
-      border-radius: 12px;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      border: 1px solid #e8decb;
+      padding: 14px 20px;
+      border-radius: 14px;
+      margin-bottom: 22px;
+      box-shadow: 0 4px 12px rgba(61, 49, 42, 0.05);
       font-size: 16px;
-      color: #555;
+      color: #6e5c4f;
     }
 
     .timestamp-box strong {
-      color: #222;
+      color: #3d312a;
+      display: block;
+      margin-top: 4px;
+      font-size: 18px;
     }
 
     .feed-btn {
-      background-color: #ff6b6b;
-      color: white;
+      background-color: #8c6239;
+      color: #ffffff;
       border: none;
       border-radius: 50px;
-      padding: 18px 45px;
-      font-size: 22px;
+      padding: 18px 40px;
+      font-size: 20px;
       font-weight: bold;
       cursor: pointer;
-      box-shadow: 0 8px 20px rgba(255, 107, 107, 0.4);
+      box-shadow: 0 8px 18px rgba(140, 98, 57, 0.3);
       transition: transform 0.15s ease, background-color 0.2s ease;
       outline: none;
       -webkit-tap-highlight-color: transparent;
@@ -77,39 +82,42 @@
     }
 
     .feed-btn:active {
-      transform: scale(0.95);
-      background-color: #ee5253;
+      transform: scale(0.96);
+      background-color: #704d2b;
     }
 
     .feed-btn:disabled {
-      background-color: #cccccc;
+      background-color: #c4b5a5;
       box-shadow: none;
       cursor: not-allowed;
     }
 
     #status {
-      margin-top: 15px;
+      margin-top: 14px;
       font-size: 15px;
       font-weight: 600;
-      color: #666;
-      min-height: 24px;
+      color: #8c6239;
+      min-height: 22px;
     }
 
     .history-card {
       background: #ffffff;
-      border-radius: 12px;
-      padding: 15px 20px;
-      margin-top: 25px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      border: 1px solid #e8decb;
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-top: 22px;
+      box-shadow: 0 4px 12px rgba(61, 49, 42, 0.05);
       text-align: left;
     }
 
     .history-card h3 {
       margin: 0 0 10px 0;
-      font-size: 16px;
-      color: #444;
-      border-bottom: 1px solid #eee;
+      font-size: 15px;
+      color: #6e5c4f;
+      border-bottom: 1px solid #f0e8dc;
       padding-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     .history-list {
@@ -119,10 +127,10 @@
     }
 
     .history-list li {
-      padding: 6px 0;
+      padding: 8px 0;
       font-size: 14px;
-      color: #666;
-      border-bottom: 1px solid #fafafa;
+      color: #3d312a;
+      border-bottom: 1px solid #f7f3ee;
     }
 
     .history-list li:last-child {
@@ -164,15 +172,9 @@
       appId: "1:1024504801806:web:053d531697417928366a5f"
     };
 
-    // EmailJS Config
-    const EMAILJS_PUBLIC_KEY = "dEdp_FsFVP6CqWvui"; 
-    const EMAILJS_SERVICE_ID = "service_mbl99xl";
-    const EMAILJS_TEMPLATE_ID = "template_3iksf9m";
-
-    // Initialize Firebase & EmailJS
+    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    emailjs.init(EMAILJS_PUBLIC_KEY);
 
     // Listen for most recent feeding time
     db.ref('lastFed').on('value', (snapshot) => {
@@ -183,7 +185,7 @@
       }
     });
 
-    // Listen for history log updates (shows last 5)
+    // Fetch and display strictly the last 5 feedings
     db.ref('history').limitToLast(5).on('value', (snapshot) => {
       const historyList = document.getElementById('historyList');
       historyList.innerHTML = '';
@@ -198,6 +200,7 @@
         items.push(child.val());
       });
 
+      // Show newest first
       items.reverse().forEach((timeStr) => {
         const li = document.createElement('li');
         li.innerText = `🐾 ${timeStr}`;
@@ -205,7 +208,7 @@
       });
     });
 
-    // Record feeding & send alert
+    // Record feeding timestamp
     async function feedLola() {
       const btn = document.getElementById('feedButton');
       const statusDiv = document.getElementById('status');
@@ -214,29 +217,25 @@
       statusDiv.innerText = "Updating...";
 
       const now = new Date();
-      // Formats timestamp strictly to time and weekday (e.g. "8:46 PM on Wednesday")
       const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const dayStr = now.toLocaleDateString([], { weekday: 'long' });
       const formattedTime = `${timeStr} on ${dayStr}`;
 
       try {
-        // Write to Firebase
         await Promise.all([
           db.ref('lastFed').set(formattedTime),
           db.ref('history').push(formattedTime)
         ]);
 
-        // Send EmailJS SMS
-        statusDiv.innerText = "Sending SMS...";
-        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID);
-        statusDiv.innerText = "✅ Saved & SMS sent!";
+        statusDiv.innerText = "✅ Saved!";
       } catch (error) {
-        console.error("Error:", error);
-        statusDiv.innerText = "⚠️ Saved time, but SMS failed.";
+        console.error("Error updating database:", error);
+        statusDiv.innerText = "❌ Error saving timestamp.";
       } finally {
         setTimeout(() => { 
           btn.disabled = false; 
-        }, 3000);
+          statusDiv.innerText = "";
+        }, 2500);
       }
     }
   </script>
