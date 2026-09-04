@@ -173,7 +173,7 @@
 <body>
 
   <div class="container">
-    <img src="lola.jpg" alt="Lola" class="cat-photo" onerror="this.style.display='none'">
+    <img id="catPhoto" src="lola.jpg" alt="Lola" class="cat-photo" onerror="this.src='lola.jpg'">
     
     <h1>Fed Lola Today? 🐾</h1>
     
@@ -193,7 +193,41 @@
   </div>
 
   <script>
-    // Firebase Config
+    // --- Photos Array ---
+    const lolaPhotos = [
+      'lola.jpg',
+      'IMG_0327.jpg',
+      'IMG_0600.jpg',
+      'IMG_1084.jpg',
+      'IMG_1250.jpg',
+      'IMG_1608.jpg',
+      'IMG_1744.jpg',
+      'IMG_1762.jpg',
+      'IMG_1893.jpg',
+      'IMG_2041.jpg',
+      'IMG_2426.jpg',
+      'IMG_2765.jpg',
+      'IMG_3197.jpg',
+      'IMG_5887.jpg',
+      'IMG_7078.jpg',
+      'IMG_7401.jpg',
+      'IMG_7480.jpg',
+      'IMG_7597.jpg',
+      'IMG_7666.jpg',
+      'IMG_7743.jpg',
+      'IMG_8327.jpg',
+      'IMG_8328.jpg',
+      'IMG_8571.jpg',
+      'IMG_9274.jpg',
+      'IMG_9316.jpg',
+      'IMG_9317.jpg'
+    ];
+
+    // Pick a random photo on page load
+    const randomPhoto = lolaPhotos[Math.floor(Math.random() * lolaPhotos.length)];
+    document.getElementById('catPhoto').src = randomPhoto;
+
+    // --- Firebase Config ---
     const firebaseConfig = {
       apiKey: "AIzaSyAf4T7QPuiae3qBQePxH7K-Xz6nG7JUsh4",
       authDomain: "fed-lola.firebaseapp.com",
@@ -210,17 +244,15 @@
 
     const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-    // Helper to format time without leading zeros (e.g., "5:25 AM")
     function formatTimeWithoutLeadingZero(dateObj) {
       let hours = dateObj.getHours();
       const minutes = dateObj.getMinutes().toString().padStart(2, '0');
       const ampm = hours >= 12 ? 'PM' : 'AM';
       hours = hours % 12;
-      hours = hours ? hours : 12; // '0' hours becomes '12'
+      hours = hours ? hours : 12;
       return `${hours}:${minutes} ${ampm}`;
     }
 
-    // Dynamic date parsing to handle both ISO strings and legacy string formats
     function formatRelativeDate(val) {
       if (!val) return "Not yet fed";
 
@@ -228,7 +260,6 @@
       const currentDayName = daysOfWeek[now.getDay()];
       const yesterdayDayName = daysOfWeek[(now.getDay() + 6) % 7];
 
-      // Standard ISO timestamp path
       let date = new Date(val);
       if (!isNaN(date.getTime())) {
         const timeStr = formatTimeWithoutLeadingZero(date);
@@ -241,10 +272,9 @@
         return `${timeStr} on ${daysOfWeek[date.getDay()]}`;
       }
 
-      // Legacy plain-text parsing ("05:25 AM on Friday" or "5:25 AM on Friday")
       const match = val.match(/^(\d{1,2}:\d{2}\s?[AP]M)\s+on\s+([A-Za-z]+)$/i);
       if (match) {
-        let timeStr = match[1].replace(/^0/, ''); // Trim leading zero from time string
+        let timeStr = match[1].replace(/^0/, '');
         const recordDay = match[2];
 
         if (recordDay.toLowerCase() === currentDayName.toLowerCase()) {
@@ -259,7 +289,6 @@
       return val.replace(/^0/, '');
     }
 
-    // Sync "Last Fed" display with latest entry
     function updateLastFedFromHistory() {
       db.ref('history').limitToLast(1).get().then((snapshot) => {
         if (snapshot.exists()) {
@@ -272,7 +301,6 @@
       });
     }
 
-    // Listen for most recent feeding time
     db.ref('lastFed').on('value', (snapshot) => {
       const val = snapshot.val();
       const target = document.getElementById('lastFedTime');
@@ -281,7 +309,6 @@
       }
     });
 
-    // Fetch and display strictly the last 5 feedings
     db.ref('history').limitToLast(5).on('value', (snapshot) => {
       const historyList = document.getElementById('historyList');
       historyList.innerHTML = '';
@@ -296,7 +323,6 @@
         items.push({ key: child.key, val: child.val() });
       });
 
-      // Show newest first
       items.reverse().forEach((item) => {
         const li = document.createElement('li');
 
@@ -306,14 +332,12 @@
 
         const actionsDiv = document.createElement('div');
 
-        // Edit Button
         const editBtn = document.createElement('button');
         editBtn.className = 'action-btn edit-btn';
         editBtn.innerHTML = '✏️';
         editBtn.title = 'Edit Entry';
         editBtn.onclick = () => editEntry(item.key, item.val);
 
-        // Delete Button
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'action-btn delete-btn';
         deleteBtn.innerHTML = '🗑️';
@@ -329,7 +353,6 @@
       });
     });
 
-    // Edit entry in Firebase
     async function editEntry(key, currentVal) {
       const updatedVal = prompt("Modify feeding timestamp:", currentVal);
       if (updatedVal !== null && updatedVal.trim() !== "") {
@@ -338,7 +361,6 @@
       }
     }
 
-    // Delete entry from Firebase
     async function deleteEntry(key) {
       if (confirm("Delete this feeding record?")) {
         await db.ref(`history/${key}`).remove();
@@ -346,7 +368,6 @@
       }
     }
 
-    // Record feeding timestamp
     async function feedLola() {
       const btn = document.getElementById('feedButton');
       const statusDiv = document.getElementById('status');
@@ -354,7 +375,6 @@
       btn.disabled = true;
       statusDiv.innerText = "Updating...";
 
-      // Standard ISO timestamp for precise time tracking
       const isoTimestamp = new Date().toISOString();
 
       try {
