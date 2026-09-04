@@ -208,6 +208,34 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    // Converts timestamp or legacy string into relative text ("Today", "Yesterday", or weekday)
+    function formatRelativeDate(val) {
+      if (!val) return "Not yet fed";
+
+      let date = new Date(val);
+      
+      // Fallback for legacy text formats saved previously
+      if (isNaN(date.getTime())) {
+        return val;
+      }
+
+      const now = new Date();
+      const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const targetDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const diffDays = Math.round((today - targetDay) / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 0) {
+        return `${timeStr} Today`;
+      } else if (diffDays === 1) {
+        return `${timeStr} Yesterday`;
+      } else {
+        const dayStr = date.toLocaleDateString([], { weekday: 'long' });
+        return `${timeStr} on ${dayStr}`;
+      }
+    }
+
     // Sync "Last Fed" display with latest entry
     function updateLastFedFromHistory() {
       db.ref('history').limitToLast(1).get().then((snapshot) => {
@@ -216,7 +244,7 @@
             db.ref('lastFed').set(child.val());
           });
         } else {
-          db.ref('lastFed').set("Not yet fed");
+          db.ref('lastFed').set(null);
         }
       });
     }
@@ -226,11 +254,11 @@
       const val = snapshot.val();
       const target = document.getElementById('lastFedTime');
       if (target) {
-        target.innerText = val ? val : "Not yet fed";
+        target.innerText = formatRelativeDate(val);
       }
     });
 
-    // Fetch and display strictly the last 5 feedings with Edit/Delete actions
+    // Fetch and display strictly the last 5 feedings
     db.ref('history').limitToLast(5).on('value', (snapshot) => {
       const historyList = document.getElementById('historyList');
       historyList.innerHTML = '';
@@ -251,7 +279,7 @@
 
         const textSpan = document.createElement('span');
         textSpan.className = 'history-text';
-        textSpan.innerText = `🐾 ${item.val}`;
+        textSpan.innerText = `🐾 ${formatRelativeDate(item.val)}`;
 
         const actionsDiv = document.createElement('div');
 
@@ -280,7 +308,7 @@
 
     // Edit entry in Firebase
     async function editEntry(key, currentVal) {
-      const updatedVal = prompt("Modify feeding timestamp:", currentVal);
+      const updatedVal = prompt("Modify feeding timestamp ISO/Date string:", currentVal);
       if (updatedVal !== null && updatedVal.trim() !== "") {
         await db.ref(`history/${key}`).set(updatedVal.trim());
         updateLastFedFromHistory();
@@ -303,15 +331,13 @@
       btn.disabled = true;
       statusDiv.innerText = "Updating...";
 
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const dayStr = now.toLocaleDateString([], { weekday: 'long' });
-      const formattedTime = `${timeStr} on ${dayStr}`;
+      // Save ISO timestamp string (e.g., "2026-09-04T05:25:00.000Z")
+      const isoTimestamp = new Date().toISOString();
 
       try {
         await Promise.all([
-          db.ref('lastFed').set(formattedTime),
-          db.ref('history').push(formattedTime)
+          db.ref('lastFed').set(isoTimestamp),
+          db.ref('history').push(isoTimestamp)
         ]);
 
         statusDiv.innerText = "✅ Saved!";
