@@ -210,6 +210,16 @@
 
     const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
+    // Helper to format time without leading zeros (e.g., "5:25 AM")
+    function formatTimeWithoutLeadingZero(dateObj) {
+      let hours = dateObj.getHours();
+      const minutes = dateObj.getMinutes().toString().padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12; // '0' hours becomes '12'
+      return `${hours}:${minutes} ${ampm}`;
+    }
+
     // Dynamic date parsing to handle both ISO strings and legacy string formats
     function formatRelativeDate(val) {
       if (!val) return "Not yet fed";
@@ -221,7 +231,7 @@
       // Standard ISO timestamp path
       let date = new Date(val);
       if (!isNaN(date.getTime())) {
-        const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const timeStr = formatTimeWithoutLeadingZero(date);
         const todayZero = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const targetZero = new Date(date.getFullYear(), date.getMonth(), date.getDate());
         const diffDays = Math.round((todayZero - targetZero) / (1000 * 60 * 60 * 24));
@@ -231,10 +241,10 @@
         return `${timeStr} on ${daysOfWeek[date.getDay()]}`;
       }
 
-      // Legacy plain-text parsing ("05:25 AM on Friday")
+      // Legacy plain-text parsing ("05:25 AM on Friday" or "5:25 AM on Friday")
       const match = val.match(/^(\d{1,2}:\d{2}\s?[AP]M)\s+on\s+([A-Za-z]+)$/i);
       if (match) {
-        const timeStr = match[1];
+        let timeStr = match[1].replace(/^0/, ''); // Trim leading zero from time string
         const recordDay = match[2];
 
         if (recordDay.toLowerCase() === currentDayName.toLowerCase()) {
@@ -246,7 +256,7 @@
         return `${timeStr} on ${recordDay}`;
       }
 
-      return val;
+      return val.replace(/^0/, '');
     }
 
     // Sync "Last Fed" display with latest entry
